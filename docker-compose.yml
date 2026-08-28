@@ -1,0 +1,19 @@
+services:
+  rag-service:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:18080"
+    env_file:
+      - .env
+    environment:
+      RAG_HOST: 0.0.0.0
+      RAG_PORT: 18080
+      RAG_DATA_DIR: /app/data
+      RAG_UPLOAD_DIR: /app/data/uploads
+      RAG_SQLITE_PATH: /app/data/rag.db
+      RAG_QDRANT_PATH: /app/data/qdrant
+      RAG_MODEL_CACHE_DIR: /app/models
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models

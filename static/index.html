@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>RAG Control Room</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-label="RAG Control Room">
+        <span class="brand-glyph">R</span>
+        <span><strong>RAG Control Room</strong><small>local knowledge runtime</small></span>
+      </div>
+      <div class="topbar-actions">
+        <span id="health-pill" class="status-pill status-neutral">CHECKING</span>
+        <span id="release-pill" class="release-pill">no active release</span>
+        <span id="execution-pill" class="section-chip">BOOTING</span>
+        <button id="refresh-btn" class="icon-button" title="Refresh data" aria-label="Refresh data">↻</button>
+        <button id="token-btn" class="quiet-button" title="Set local bearer token">Token</button>
+      </div>
+    </header>
+
+    <div class="shell-body">
+      <aside class="sidebar">
+        <nav class="nav-list" aria-label="Primary navigation">
+          <button class="nav-item active" data-view="overview"><span class="nav-index">01</span>Overview</button>
+          <button class="nav-item" data-view="documents"><span class="nav-index">02</span>Documents</button>
+          <button class="nav-item" data-view="query-lab"><span class="nav-index">03</span>Query Lab</button>
+          <button class="nav-item" data-view="test-sessions"><span class="nav-index">04</span>Test Sessions</button>
+          <button class="nav-item" data-view="releases"><span class="nav-index">05</span>Releases</button>
+          <button class="nav-item" data-view="traces"><span class="nav-index">06</span>Traces</button>
+          <button class="nav-item" data-view="evaluations"><span class="nav-index">07</span>Evaluations</button>
+          <button class="nav-item" data-view="api"><span class="nav-index">08</span>API Surface</button>
+        </nav>
+        <div class="sidebar-foot">
+          <span class="live-dot"></span>
+          <span><b>Local runtime</b><small>read-only agent tools</small></span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section id="view-overview" class="view active">
+          <div class="view-heading">
+            <div><p class="eyebrow">RAG / OPERATIONS</p><h1>Control room</h1><p class="subtle">One place to inspect knowledge, answers, releases, and evidence.</p></div>
+            <button class="primary-button" data-go="query-lab">Run a query <span>→</span></button>
+          </div>
+          <div class="metric-grid">
+            <article class="metric-panel"><span class="metric-label">Documents</span><strong id="metric-documents">0</strong><small id="metric-documents-note">waiting for ingest</small></article>
+            <article class="metric-panel accent-coral"><span class="metric-label">Indexed chunks</span><strong id="metric-chunks">0</strong><small id="metric-chunks-note">published scope</small></article>
+            <article class="metric-panel accent-lime"><span class="metric-label">Active knowledge</span><strong id="metric-release">--</strong><small id="metric-release-note">no release</small></article>
+            <article class="metric-panel accent-blue"><span class="metric-label">Traces</span><strong id="metric-traces">0</strong><small id="metric-traces-note">local SQLite</small></article>
+          </div>
+          <section class="panel execution-panel"><div class="panel-heading"><div><p class="eyebrow">EXECUTION STATUS</p><h2 id="execution-phase">Loading runtime phase</h2></div><span id="execution-progress-label" class="mini-badge">--</span></div><div class="progress-track"><span id="execution-progress-bar"></span></div><div class="execution-meta"><span id="execution-meta-text">Waiting for status.</span><span id="execution-feedback-text">-- reviewer feedback</span></div></section>
+          <div class="overview-grid">
+            <section class="panel provider-panel"><div class="panel-heading"><div><p class="eyebrow">RUNTIME</p><h2>Provider posture</h2></div><span id="agent-badge" class="mini-badge">agent</span></div><div id="provider-list" class="provider-list"></div></section>
+            <section class="panel quick-panel"><div class="panel-heading"><div><p class="eyebrow">FAST PATH</p><h2>Quick query</h2></div><span class="mini-badge">published</span></div><textarea id="quick-question" rows="3" placeholder="输入一个要验证的业务问题"></textarea><div class="quick-actions"><button id="quick-run" class="primary-button">Query <span>↗</span></button><span id="quick-result" class="subtle">answer and evidence appear in Query Lab</span></div></section>
+          </div>
+          <section class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">LATEST RUNS</p><h2>Recent traces</h2></div><button class="text-button" data-go="traces">Open all →</button></div><div id="overview-traces" class="trace-list"></div></section>
+        </section>
+
+        <section id="view-documents" class="view">
+          <div class="view-heading"><div><p class="eyebrow">KNOWLEDGE / INGEST</p><h1>Documents</h1><p class="subtle">Parse, chunk, embed, and inspect source locations before release.</p></div><span class="section-chip">PDF · DOCX · XLSX · TXT · MD · CSV</span></div>
+          <div class="documents-layout">
+            <section class="panel upload-panel"><div class="panel-heading"><div><p class="eyebrow">NEW SOURCE</p><h2>Upload document</h2></div><span class="mini-badge">async</span></div><form id="upload-form"><label class="file-drop" for="upload-file"><input id="upload-file" type="file" accept=".pdf,.docx,.xlsx,.txt,.md,.markdown,.csv,.tsv,.json,.jsonl"><span class="file-icon">+</span><span id="file-name">Choose a source file</span><small>50 MB max · OCR is intentionally disabled in V1</small></label><div class="field-grid"><label>Title<input id="upload-title" type="text" placeholder="Optional display title"></label><label>Category<input id="upload-category" type="text" placeholder="e.g. PUBLIC_FAQ"></label><label>Source owner<input id="upload-owner" type="text" placeholder="Optional"></label><label>Chunk policy<select id="upload-policy"><option value="">Auto-select</option><option>FAQ_STRUCTURED</option><option>TABLE_ROWS</option><option>MARKDOWN_HIERARCHICAL</option><option>PROSE_RECURSIVE</option></select></label></div><button class="primary-button full-width" type="submit">Start processing <span>↗</span></button></form><div id="upload-message" class="inline-message"></div></section>
+            <section class="panel documents-panel"><div class="panel-heading"><div><p class="eyebrow">SOURCE REGISTRY</p><h2>Current documents</h2></div><button id="documents-refresh" class="quiet-button">Refresh</button></div><div id="documents-table" class="data-table"></div></section>
+          </div>
+          <section class="panel chunk-inspector"><div class="panel-heading"><div><p class="eyebrow">CHUNK INSPECTOR</p><h2 id="chunk-title">Select a document</h2></div><span id="chunk-policy-badge" class="mini-badge">--</span></div><div id="chunk-list" class="chunk-list empty-state">Choose a ready document to inspect its chunks.</div></section>
+        </section>
+
+        <section id="view-query-lab" class="view">
+          <div class="view-heading"><div><p class="eyebrow">RUNTIME / DEBUG</p><h1>Query Lab</h1><p class="subtle">See rewritten queries, hybrid retrieval, reranking, evidence gates, and the final answer.</p></div><span class="section-chip">TRACE ON</span></div>
+          <div class="query-layout">
+            <section class="panel query-form-panel"><div class="panel-heading"><div><p class="eyebrow">INPUT SNAPSHOT</p><h2>Ask the knowledge base</h2></div><span class="mini-badge">debug</span></div><label class="large-label">Question<textarea id="query-question" rows="5" placeholder="例如：港澳居民怎么用香港手机号注册内地微信？"></textarea></label><div class="field-grid"><label>Scope<select id="query-scope"><option value="published">Published release</option><option value="test">Test session</option></select></label><label>Platform<select id="query-platform"><option>DOUYIN</option><option>WEIBO</option><option>BILIBILI</option><option>WECHAT_CHANNELS</option></select></label><label>Channel<select id="query-channel"><option>DIRECT_MESSAGE</option><option>COMMENT</option></select></label><label>Top K<input id="query-topk" type="number" min="1" max="30" value="8"></label></div><label class="large-label">Context <textarea id="query-context" rows="3" placeholder="可选：每行一条 USER: 或 ASSISTANT: 消息"></textarea></label><div class="toggle-row"><label class="toggle"><input id="query-rewrite" type="checkbox" checked><span></span>Query rewrite</label><label class="toggle"><input id="query-agent" type="checkbox" checked><span></span>Deep Agent synthesis</label></div><div class="query-button-row"><button id="query-run" class="primary-button">Run debug pipeline <span>↗</span></button><button id="formal-run" class="quiet-button">Run contract query ↗</button></div><div id="query-error" class="inline-message error"></div></section>
+            <section class="panel result-panel"><div class="panel-heading"><div><p class="eyebrow">ANSWER</p><h2 id="query-result-title">Waiting for a run</h2></div><span id="query-result-pill" class="status-pill status-neutral">IDLE</span></div><div id="query-answer" class="answer-surface empty-state">Your grounded answer will appear here.</div><div id="query-grounding" class="grounding-summary"></div><div id="query-citations" class="citation-list"></div><div class="feedback-row"><span>Review this trace</span><button id="query-good" class="feedback-button good" disabled>Good</button><button id="query-bad" class="feedback-button bad" disabled>Bad</button><input id="query-feedback-note" type="text" placeholder="Optional reviewer note"></div></section>
+          </div>
+          <section class="panel diagnostic-panel"><div class="panel-heading"><div><p class="eyebrow">PIPELINE TELEMETRY</p><h2>What happened</h2></div><span id="query-trace-id" class="trace-id">no trace</span></div><div id="query-diagnostics" class="diagnostic-body empty-state">Run a query to inspect each stage.</div></section>
+        </section>
+
+        <section id="view-test-sessions" class="view">
+          <div class="view-heading"><div><p class="eyebrow">REVIEW / PRE-RELEASE</p><h1>Test Sessions</h1><p class="subtle">Pin candidate document versions, ask questions, and record reviewer decisions.</p></div><span class="section-chip">HUMAN GATE</span></div>
+          <div class="test-layout"><section class="panel session-create-panel"><div class="panel-heading"><div><p class="eyebrow">NEW SESSION</p><h2>Candidate scope</h2></div><span class="mini-badge">fixed versions</span></div><label>Mode<select id="session-mode"><option>PRE_RELEASE</option><option>SINGLE_DOCUMENT</option></select></label><div id="candidate-docs" class="candidate-list empty-state">No READY_FOR_TEST documents.</div><button id="session-create" class="primary-button full-width">Create test session <span>↗</span></button><div id="session-message" class="inline-message"></div></section><section class="panel active-session-panel"><div class="panel-heading"><div><p class="eyebrow">ACTIVE SESSION</p><h2 id="active-session-title">No session selected</h2></div><span id="active-session-status" class="mini-badge">--</span></div><label>Restore session<select id="session-select"><option value="">Choose an existing session</option></select></label><div class="session-meta" id="active-session-meta"></div><label class="large-label">Test question<textarea id="test-question" rows="3" placeholder="先创建或恢复一个测试会话"></textarea></label><button id="test-run" class="primary-button" disabled>Run test answer <span>↗</span></button><div id="test-answer" class="test-answer empty-state">Test answers and reviewer decisions will appear here.</div></section></div>
+          <section class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">ANSWER HISTORY</p><h2>Session answers</h2></div><button id="session-refresh" class="quiet-button">Refresh</button></div><div id="session-answers" class="answer-history empty-state">Select a session to see answer history.</div></section>
+        </section>
+
+        <section id="view-releases" class="view">
+          <div class="view-heading"><div><p class="eyebrow">GOVERNANCE / IMMUTABLE</p><h1>Releases</h1><p class="subtle">Build a new snapshot, atomically activate it, or roll back to a retained version.</p></div><span class="section-chip">ATOMIC SWITCH</span></div>
+          <div class="release-actions panel"><div><p class="eyebrow">PUBLISH FROM TEST</p><h2>Release the active session</h2><p id="release-session-note" class="subtle">No test session selected.</p></div><button id="release-create" class="primary-button" disabled>Build release <span>↗</span></button></div>
+          <section class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">VERSION HISTORY</p><h2>Knowledge releases</h2></div><button id="releases-refresh" class="quiet-button">Refresh</button></div><div id="releases-table" class="release-list"></div></section>
+        </section>
+
+        <section id="view-traces" class="view">
+          <div class="view-heading"><div><p class="eyebrow">OBSERVABILITY / REVIEW</p><h1>Traces</h1><p class="subtle">Every ingestion and query is a reviewable run with evidence and stage timing.</p></div><span class="section-chip">SQLITE CANONICAL</span></div>
+          <div class="trace-layout"><section class="panel trace-index-panel"><div class="panel-heading"><div><p class="eyebrow">RUN INDEX</p><h2>Recent traces</h2></div><button id="traces-refresh" class="quiet-button">Refresh</button></div><div id="traces-table" class="trace-list"></div></section><section class="panel trace-detail-panel"><div class="panel-heading"><div><p class="eyebrow">SELECTED RUN</p><h2 id="trace-detail-title">Choose a trace</h2></div><span id="trace-detail-status" class="status-pill status-neutral">--</span></div><div id="trace-detail" class="diagnostic-body empty-state">Trace waterfall and feedback appear here.</div></section></div>
+        </section>
+
+        <section id="view-evaluations" class="view">
+          <div class="view-heading"><div><p class="eyebrow">QUALITY / REGRESSION</p><h1>Evaluations</h1><p class="subtle">Run the bundled 200-case matrix and inspect failures through their traces.</p></div><span class="section-chip">200 CASES</span></div>
+          <div class="evaluation-hero panel"><div><p class="eyebrow">BUNDLED MATRIX</p><h2>Answerable · insufficient · malicious · out of scope</h2><div id="eval-summary" class="eval-summary">No evaluation run yet.</div></div><button id="eval-run" class="primary-button">Run 200 cases <span>↗</span></button></div>
+          <section class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">RUN HISTORY</p><h2>Evaluation runs</h2></div><button id="eval-refresh" class="quiet-button">Refresh</button></div><div id="eval-table" class="evaluation-list"></div></section><section class="panel table-panel"><div class="panel-heading"><div><p class="eyebrow">CASE REVIEW</p><h2>Selected run cases</h2></div></div><div id="eval-failures" class="evaluation-list empty-state">Select a run to inspect case assertions and trace IDs.</div></section>
+        </section>
+
+        <section id="view-api" class="view">
+          <div class="view-heading"><div><p class="eyebrow">INTEGRATION / CONTRACT</p><h1>API Surface</h1><p class="subtle">The same capabilities used by this UI are available through the local HTTP contract.</p></div><span class="section-chip">V1 · JSON</span></div>
+          <section class="panel api-panel"><div class="panel-heading"><div><p class="eyebrow">ROUTES</p><h2>Exposed endpoints</h2></div><a class="quiet-button link-button" href="/docs" target="_blank" rel="noreferrer">Open Swagger ↗</a></div><div id="api-routes" class="api-list"></div></section>
+          <section class="panel api-panel"><div class="panel-heading"><div><p class="eyebrow">RUNTIME CONFIG</p><h2>Effective providers</h2></div></div><pre id="api-provider-json" class="code-block">Loading…</pre></section>
+        </section>
+      </main>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
